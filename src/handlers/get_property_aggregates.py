@@ -48,7 +48,7 @@ def get_property_aggregates(client, asset: Asset, body: dict) -> dict:
         aggregate_values = {}
         for aggregate in aggregates["aggregatedValues"]:
             agg_type = list(aggregate["value"].keys())[0]
-            agg_value = str(aggregate["value"][agg_type])
+            agg_value = aggregate["value"][agg_type]
             aggregate_values[agg_type] = agg_value
             break  # only the first (latest) value
 

@@ -30,7 +30,7 @@ def get_asset_historical_values(
     for page in page_iterator:
         for value in page["assetPropertyValueHistory"]:
             for key in value["value"].keys():
-                result["values"].append(
+                result.values.append(
                     {
                         "timestamp": str(value["timestamp"]),
                         "formattedTime": get_formatted_date(
@@ -40,7 +40,7 @@ def get_asset_historical_values(
                     }
                 )
 
-    return result
+    return result.to_dict()
 
 
 def lambda_handler(event, context):
