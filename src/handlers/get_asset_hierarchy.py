@@ -30,7 +30,6 @@ def get_asset_hierarchy(client, asset: Asset, line_suffixes: list) -> dict:
             maxResults=25,
         )
         for asset_summary in response["assetSummaries"]:
-            gchild_assets = []
             child_asset = client.describe_asset(assetId=asset_summary["id"])
             child = Child(asset_summary["id"], child_asset["assetName"])
             grandchildren = []
