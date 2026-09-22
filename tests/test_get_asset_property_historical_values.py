@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from src.handlers.get_asset_property_historical_values import lambda_handler
+from src.handlers.get_asset import lambda_handler
 
 
 def test_returns_historical_values_for_property(mock_client):
@@ -30,32 +30,25 @@ def test_returns_historical_values_for_property(mock_client):
     ]
 
     event = {
-        "body": {
-            "assetId": "asset-1",
-            "startDate": "2023-03-01",
-            "endDate": "2023-03-03",
-            "qualities": ["GOOD"],
-            "timeOrdering": "ASCENDING",
-            "maxResults": 10,
-            "propertyNames": ["CycleTime"],
-        }
+        "httpMethod": "GET",
+        "path": "/api/asset/prop/hist/val",
+        "body": '{"assetId": "asset-1", "startDate": "2023-03-01", "endDate": "2023-03-03", "qualities": ["GOOD"], "timeOrdering": "ASCENDING", "maxResults": 10, "propertyNames": ["CycleTime"]}',
     }
 
     # act
     with patch(
-        "src.handlers.get_asset_property_historical_values.get_sitewise_client",
+        "src.handlers.get_asset.get_sitewise_client",
         return_value=mock_client,
     ):
         response = lambda_handler(event, {})
 
     # assert
     assert response["statusCode"] == 200
-    body = response["body"]
-    assert len(body) == 1
-
-    result = json.loads(body[0])
-    assert result["propertyName"] == "CycleTime"
-    assert result["propertyId"] == "p1"
-    assert len(result["values"]) == 2
-    assert result["values"][0]["value"] == 12.35
-    assert result["values"][1]["value"] == 67.89
+    result = json.loads(response["body"])
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert result[0]["propertyName"] == "CycleTime"
+    assert result[0]["propertyId"] == "p1"
+    assert len(result[0]["values"]) == 2
+    assert result[0]["values"][0]["value"] == 12.35
+    assert result[0]["values"][1]["value"] == 67.89

@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from src.handlers.get_asset_metric_latest_value import lambda_handler
+from src.handlers.get_asset import lambda_handler
 
 
 def test_filters_properties_by_suffix(mock_client):
@@ -21,15 +21,13 @@ def test_filters_properties_by_suffix(mock_client):
     mock_client.get_asset_property_value.side_effect = get_value
 
     event = {
-        "assetId": "asset-1",
-        "allowed_suffixes": "CycleTime,Throughput",
+        "httpMethod": "GET",
+        "path": "/api/asset/metric/lat-val",
+        "body": '{"assetId": "asset-1", "allowed_suffixes": "CycleTime,Throughput"}',
     }
 
     # act
-    with patch(
-        "src.handlers.get_asset_metric_latest_value.get_sitewise_client",
-        return_value=mock_client,
-    ):
+    with patch("src.handlers.get_asset.get_sitewise_client", return_value=mock_client):
         response = lambda_handler(event, {})
 
     # assert

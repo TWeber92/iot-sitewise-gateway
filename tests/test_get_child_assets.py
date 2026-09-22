@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from src.handlers.get_child_assets import lambda_handler
+from src.handlers.get_child import lambda_handler
 
 
 def test_returns_matching_children(mock_client):
@@ -27,19 +27,17 @@ def test_returns_matching_children(mock_client):
     }
 
     event = {
-        "body": {
-            "parent_asset_id": "parent-id",
-            "childNames": ["ExtrusionLine_1"],
-        }
+        "httpMethod": "GET",
+        "path": "/api/child/assets",
+        "body": '{"parent_asset_id": "parent-id","childNames": ["ExtrusionLine_1"]}',
     }
 
     # act
-    with patch(
-        "src.handlers.get_child_assets.get_sitewise_client", return_value=mock_client
-    ):
+    with patch("src.handlers.get_child.get_sitewise_client", return_value=mock_client):
         response = lambda_handler(event, {})
 
     # assert
     assert response["statusCode"] == 200
     body = json.loads(response["body"])
+    assert len(body) == 1
     assert body == {"ExtrusionLine_1": "child-1"}

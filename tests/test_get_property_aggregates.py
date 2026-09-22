@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from src.handlers.get_property_aggregates import lambda_handler
+from src.handlers.get_property import lambda_handler
 
 
 def test_returns_aggregates_for_matching_properties(mock_client):
@@ -27,18 +27,20 @@ def test_returns_aggregates_for_matching_properties(mock_client):
     mock_client.get_asset_property_aggregates.side_effect = get_aggregates
 
     event = {
-        "body": {
+        "httpMethod": "GET",
+        "path": "/api/property/agg",
+        "body": """{
             "assetId": "asset-1",
             "startTime": "2023-03-01",
             "endTime": "2023-03-03",
             "interval": "1m",
             "aggregateTypes": ["SUM"],
-            "propertiesNeeded": ["Runtime", "Downtime"],
-        }
+            "propertiesNeeded": ["Runtime", "Downtime"]
+        }""",
     }
 
     with patch(
-        "src.handlers.get_property_aggregates.get_sitewise_client",
+        "src.handlers.get_property.get_sitewise_client",
         return_value=mock_client,
     ):
         response = lambda_handler(event, {})

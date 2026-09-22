@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from src.handlers.get_hierarchy_properties import lambda_handler
+from src.handlers.get_hierarchy import lambda_handler
 
 
 def test_builds_parent_only(mock_client):
@@ -18,28 +18,24 @@ def test_builds_parent_only(mock_client):
     }
 
     event = {
-        "body": {
-            "parentAssetId": "parent-id",
-            "hierarchy": "PARENT",
-            "propertyNames": ["CycleTime"],
-        }
+        "httpMethod": "GET",
+        "path": "/api/hierarchy/props",
+        "body": '{"parentAssetId": "parent-id","hierarchy": "PARENT","propertyNames": ["CycleTime"]}',
     }
 
     # act
     with patch(
-        "src.handlers.get_hierarchy_properties.get_sitewise_client",
+        "src.handlers.get_hierarchy.get_sitewise_client",
         return_value=mock_client,
     ):
         response = lambda_handler(event, {})
 
     # assert
-    body = json.loads(response)
-    assert body["parent"]["id"] == "parent-id"
-    assert body["parent"]["name"] == "Parent Line"
-    assert body["parent"]["properties"] == [
-        {"propertyName": "CycleTime", "latestValue": 12.35}
-    ]
-    assert body["parent"]["children"] == []
+    body = json.loads(response["body"])
+    assert body["id"] == "parent-id"
+    assert body["name"] == "Parent Line"
+    assert body["properties"] == [{"propertyName": "CycleTime", "latestValue": 12.35}]
+    assert body["children"] == []
 
 
 def test_builds_parent_with_children(mock_client):
@@ -70,25 +66,23 @@ def test_builds_parent_with_children(mock_client):
     }
 
     event = {
-        "body": {
-            "parentAssetId": "parent-id",
-            "hierarchy": "CHILD1",
-            "propertyNames": ["CycleTime"],
-        }
+        "httpMethod": "GET",
+        "path": "/api/hierarchy/props",
+        "body": '{"parentAssetId": "parent-id","hierarchy": "CHILD1","propertyNames": ["CycleTime"]}',
     }
 
     # act
     with patch(
-        "src.handlers.get_hierarchy_properties.get_sitewise_client",
+        "src.handlers.get_hierarchy.get_sitewise_client",
         return_value=mock_client,
     ):
         response = lambda_handler(event, {})
 
     # assert
-    body = json.loads(response)
-    assert body["parent"]["id"] == "parent-id"
-    assert len(body["parent"]["children"]) == 1
-    child = body["parent"]["children"][0]
+    body = json.loads(response["body"])
+    assert body["id"] == "parent-id"
+    assert len(body["children"]) == 1
+    child = body["children"][0]
     assert child["id"] == "child-1"
     assert child["name"] == "Child 1"
     assert child["properties"] == [{"propertyName": "CycleTime", "latestValue": 99.0}]

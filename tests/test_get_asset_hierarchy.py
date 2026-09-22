@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch
 
-from src.handlers.get_asset_hierarchy import lambda_handler
+from src.handlers.get_asset import lambda_handler
 
 
 def test_returns_parent_children_grandchildren(mock_client):
@@ -34,18 +34,17 @@ def test_returns_parent_children_grandchildren(mock_client):
     }
 
     event = {
-        "assetId": "parent-id",
-        "lineSuffixes": ["id", "name", "status"],
+        "httpMethod": "GET",
+        "path": "/api/asset/hierarchy",
+        "body": '{"assetId": "parent-id", "lineSuffixes": ["id", "name", "status"]}',
     }
 
     # act
-    with patch(
-        "src.handlers.get_asset_hierarchy.get_sitewise_client", return_value=mock_client
-    ):
+    with patch("src.handlers.get_asset.get_sitewise_client", return_value=mock_client):
         response = lambda_handler(event, {})
 
     # assert
-    body = json.loads(response)
+    body = json.loads(response["body"])
     assert "parent" in body
     assert "children" in body
 
