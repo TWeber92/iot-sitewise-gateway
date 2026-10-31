@@ -1,11 +1,9 @@
-import json
-from unittest.mock import patch
-
-from src.handlers.get_asset import lambda_handler
+from src.repository.asset_repository import AssetRepository
+from src.service.asset_service import AssetService
+from src.controller.asset_controller import AssetController
 
 
 def test_filters_properties_by_suffix(mock_client):
-    # arrange
     mock_client.describe_asset.return_value = {
         "assetId": "asset-1",
         "assetProperties": [
@@ -15,22 +13,24 @@ def test_filters_properties_by_suffix(mock_client):
         ],
     }
 
-    def get_value(assetId, propertyId):
-        return {"propertyValue": {"value": {"doubleValue": 12.345}}}
+    mock_client.get_asset_property_value.return_value = {
+        "propertyValue": {"value": {"doubleValue": 12.345}}
+    }
 
-    mock_client.get_asset_property_value.side_effect = get_value
+    repo = AssetRepository(mock_client)
+    service = AssetService(repo)
+    controller = AssetController(service)
 
     event = {
-        "httpMethod": "GET",
-        "path": "/api/asset/metric/lat-val",
-        "body": '{"assetId": "asset-1", "allowed_suffixes": "CycleTime,Throughput"}',
+        "body": {
+            "assetId": "asset-1",
+            "allowed_suffixes": "CycleTime,Throughput",
+        }
     }
 
     # act
-    with patch("src.handlers.get_asset.get_sitewise_client", return_value=mock_client):
-        response = lambda_handler(event, {})
+    response = controller.get_asset_metric_latest_value(event)
 
     # assert
     assert response["statusCode"] == 200
-    body = json.loads(response["body"])
-    assert body == {"CycleTime": 12.35, "Throughput": 12.35}
+    assert response["data"] == {"CycleTime": 12.35, "Throughput": 12.35}

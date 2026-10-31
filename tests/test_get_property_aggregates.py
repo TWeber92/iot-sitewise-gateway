@@ -1,7 +1,7 @@
 import json
-from unittest.mock import patch
-
-from src.handlers.get_property import lambda_handler
+from src.repository.property_repository import PropertyRepository
+from src.service.property_service import PropertyService
+from src.controller.property_controller import PropertyController
 
 
 def test_returns_aggregates_for_matching_properties(mock_client):
@@ -14,7 +14,6 @@ def test_returns_aggregates_for_matching_properties(mock_client):
         ],
     }
 
-    # every property returns a numeric value (no stringValue)
     mock_client.get_asset_property_value.return_value = {
         "propertyValue": {"value": {"doubleValue": 100.0}}
     }
@@ -26,28 +25,27 @@ def test_returns_aggregates_for_matching_properties(mock_client):
 
     mock_client.get_asset_property_aggregates.side_effect = get_aggregates
 
+    repo = PropertyRepository(mock_client)
+    service = PropertyService(repo)
+    controller = PropertyController(service)
+
     event = {
-        "httpMethod": "GET",
-        "path": "/api/property/agg",
-        "body": """{
+        "body": {
             "assetId": "asset-1",
             "startTime": "2023-03-01",
             "endTime": "2023-03-03",
             "interval": "1m",
             "aggregateTypes": ["SUM"],
-            "propertiesNeeded": ["Runtime", "Downtime"]
-        }""",
+            "propertiesNeeded": ["Runtime", "Downtime"],
+        }
     }
 
-    with patch(
-        "src.handlers.get_property.get_sitewise_client",
-        return_value=mock_client,
-    ):
-        response = lambda_handler(event, {})
+    # 4. Act
+    response = controller.get_property_aggregates(event)
 
+    # 5. Assert
     assert response["statusCode"] == 200
-    body = json.loads(response["body"])
-    assert body == {
+    assert response["data"] == {
         "Runtime": {"SUM": 42.5},
         "Downtime": {"SUM": 42.5},
     }

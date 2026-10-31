@@ -1,7 +1,6 @@
-import json
-from unittest.mock import patch
-
-from src.handlers.get_asset import lambda_handler
+from src.repository.asset_repository import AssetRepository
+from src.service.asset_service import AssetService
+from src.controller.asset_controller import AssetController
 
 
 def test_returns_historical_values_for_property(mock_client):
@@ -9,9 +8,7 @@ def test_returns_historical_values_for_property(mock_client):
     mock_client.describe_asset.return_value = {
         "assetId": "asset-1",
         "assetName": "Line 1",
-        "assetProperties": [
-            {"id": "p1", "name": "CycleTime"},
-        ],
+        "assetProperties": [{"id": "p1", "name": "CycleTime"}],
     }
 
     mock_client.get_paginator.return_value.paginate.return_value = [
@@ -29,22 +26,28 @@ def test_returns_historical_values_for_property(mock_client):
         }
     ]
 
+    repo = AssetRepository(mock_client)
+    service = AssetService(repo)
+    controller = AssetController(service)
+
     event = {
-        "httpMethod": "GET",
-        "path": "/api/asset/prop/hist/val",
-        "body": '{"assetId": "asset-1", "startDate": "2023-03-01", "endDate": "2023-03-03", "qualities": ["GOOD"], "timeOrdering": "ASCENDING", "maxResults": 10, "propertyNames": ["CycleTime"]}',
+        "body": {
+            "assetId": "asset-1",
+            "startDate": "2023-03-01",
+            "endDate": "2023-03-03",
+            "qualities": ["GOOD"],
+            "timeOrdering": "ASCENDING",
+            "maxResults": 10,
+            "propertyNames": ["CycleTime"],
+        }
     }
 
     # act
-    with patch(
-        "src.handlers.get_asset.get_sitewise_client",
-        return_value=mock_client,
-    ):
-        response = lambda_handler(event, {})
+    response = controller.get_asset_property_historical_values(event)
 
     # assert
     assert response["statusCode"] == 200
-    result = json.loads(response["body"])
+    result = response["data"]
     assert isinstance(result, list)
     assert len(result) == 1
     assert result[0]["propertyName"] == "CycleTime"

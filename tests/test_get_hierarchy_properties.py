@@ -1,7 +1,6 @@
-import json
-from unittest.mock import patch
-
-from src.handlers.get_hierarchy import lambda_handler
+from src.repository.hierarchy_repository import HierarchyRepository
+from src.service.hierarchy_service import HierarchyService
+from src.controller.hierarchy_controller import HierarchyController
 
 
 def test_builds_parent_only(mock_client):
@@ -17,21 +16,25 @@ def test_builds_parent_only(mock_client):
         "propertyValue": {"value": {"doubleValue": 12.345}}
     }
 
+    # build the real controller with the mock client
+    repo = HierarchyRepository(mock_client)
+    service = HierarchyService(repo)
+    controller = HierarchyController(service)
+
     event = {
-        "httpMethod": "GET",
-        "path": "/api/hierarchy/props",
-        "body": '{"parentAssetId": "parent-id","hierarchy": "PARENT","propertyNames": ["CycleTime"]}',
+        "body": {
+            "parentAssetId": "parent-id",
+            "hierarchy": "PARENT",
+            "propertyNames": ["CycleTime"],
+        }
     }
 
     # act
-    with patch(
-        "src.handlers.get_hierarchy.get_sitewise_client",
-        return_value=mock_client,
-    ):
-        response = lambda_handler(event, {})
+    response = controller.get_hierarchy_properties(event)
 
     # assert
-    body = json.loads(response["body"])
+    assert response["statusCode"] == 200
+    body = response["data"]
     assert body["id"] == "parent-id"
     assert body["name"] == "Parent Line"
     assert body["properties"] == [{"propertyName": "CycleTime", "latestValue": 12.35}]
@@ -65,21 +68,24 @@ def test_builds_parent_with_children(mock_client):
         "assetSummaries": [{"id": "child-1", "name": "Child 1"}]
     }
 
+    repo = HierarchyRepository(mock_client)
+    service = HierarchyService(repo)
+    controller = HierarchyController(service)
+
     event = {
-        "httpMethod": "GET",
-        "path": "/api/hierarchy/props",
-        "body": '{"parentAssetId": "parent-id","hierarchy": "CHILD1","propertyNames": ["CycleTime"]}',
+        "body": {
+            "parentAssetId": "parent-id",
+            "hierarchy": "CHILD1",
+            "propertyNames": ["CycleTime"],
+        }
     }
 
     # act
-    with patch(
-        "src.handlers.get_hierarchy.get_sitewise_client",
-        return_value=mock_client,
-    ):
-        response = lambda_handler(event, {})
+    response = controller.get_hierarchy_properties(event)
 
     # assert
-    body = json.loads(response["body"])
+    assert response["statusCode"] == 200
+    body = response["data"]
     assert body["id"] == "parent-id"
     assert len(body["children"]) == 1
     child = body["children"][0]

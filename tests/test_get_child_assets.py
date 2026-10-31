@@ -1,7 +1,6 @@
-import json
-from unittest.mock import patch
-
-from src.handlers.get_child import lambda_handler
+from src.repository.child_repository import ChildRepository
+from src.service.child_service import ChildService
+from src.controller.child_controller import ChildController
 
 
 def test_returns_matching_children(mock_client):
@@ -26,18 +25,17 @@ def test_returns_matching_children(mock_client):
         ]
     }
 
+    repo = ChildRepository(mock_client)
+    service = ChildService(repo)
+    controller = ChildController(service)
+
     event = {
-        "httpMethod": "GET",
-        "path": "/api/child/assets",
-        "body": '{"parent_asset_id": "parent-id","childNames": ["ExtrusionLine_1"]}',
+        "body": {"parent_asset_id": "parent-id", "childNames": ["ExtrusionLine_1"]}
     }
 
     # act
-    with patch("src.handlers.get_child.get_sitewise_client", return_value=mock_client):
-        response = lambda_handler(event, {})
+    response = controller.get_child_assets(event)
 
     # assert
     assert response["statusCode"] == 200
-    body = json.loads(response["body"])
-    assert len(body) == 1
-    assert body == {"ExtrusionLine_1": "child-1"}
+    assert response["data"] == {"ExtrusionLine_1": "child-1"}

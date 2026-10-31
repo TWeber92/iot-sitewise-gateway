@@ -1,11 +1,9 @@
-import json
-from unittest.mock import patch
-
-from src.handlers.get_asset import lambda_handler
+from src.repository.asset_repository import AssetRepository
+from src.service.asset_service import AssetService
+from src.controller.asset_controller import AssetController
 
 
 def test_returns_parent_children_grandchildren(mock_client):
-    # arrange
     def describe_asset(assetId):
         assets = {
             "parent-id": {
@@ -28,23 +26,28 @@ def test_returns_parent_children_grandchildren(mock_client):
         return assets[assetId]
 
     mock_client.describe_asset.side_effect = describe_asset
-
     mock_client.list_associated_assets.return_value = {
         "assetSummaries": [{"id": "child-1", "name": "Child 1"}]
     }
 
+    repo = AssetRepository(mock_client)
+    service = AssetService(repo)
+    controller = AssetController(service)
+
     event = {
-        "httpMethod": "GET",
-        "path": "/api/asset/hierarchy",
-        "body": '{"assetId": "parent-id", "lineSuffixes": ["id", "name", "status"]}',
+        "body": {
+            "assetId": "parent-id",
+            "lineSuffixes": ["id", "name", "status"],
+        }
     }
 
     # act
-    with patch("src.handlers.get_asset.get_sitewise_client", return_value=mock_client):
-        response = lambda_handler(event, {})
+    response = controller.get_asset_hierarchy(event)
 
     # assert
-    body = json.loads(response["body"])
+    assert response["statusCode"] == 200
+    body = response["data"]
+
     assert "parent" in body
     assert "children" in body
 

@@ -1,22 +1,19 @@
 import json
-from src.service.asset_service import AssetService
-from src.common.sitewise_client import get_sitewise_client
-from src.models.asset import Asset
+from src.main import Main
+import os
 
 
 def lambda_handler(event, context):
-    client = get_sitewise_client()
-    event["body"] = json.loads(event["body"])
-    service = AssetService(client)
+    controller = Main(os.environ).asset_controller
     method = event["httpMethod"]
     path = event["path"]
 
     ROUTES = {
-        "GET:/api/asset/hierarchy": lambda: service.get_asset_hierarchy(event),
-        "GET:/api/asset/metric/lat-val": lambda: service.get_asset_metric_latest_value(
+        "GET:/api/asset/hierarchy": lambda: controller.get_asset_hierarchy(event),
+        "GET:/api/asset/metric/lat-val": lambda: controller.get_asset_metric_latest_value(
             event
         ),
-        "GET:/api/asset/prop/hist/val": lambda: service.get_asset_property_historical_values(
+        "GET:/api/asset/prop/hist/val": lambda: controller.get_asset_property_historical_values(
             event
         ),
     }
@@ -25,4 +22,4 @@ def lambda_handler(event, context):
     if handler is None:
         raise ValueError(f"No handler for {method}:{path}")
 
-    return {"statusCode": 200, "body": json.dumps(handler())}
+    return handler()
