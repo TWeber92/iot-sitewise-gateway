@@ -3,9 +3,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from flask import Flask, request
+from flask_cors import CORS
 from src.common.router import route
 
 app = Flask(__name__)
+
+
+CORS(
+    app,
+    origins=["http://localhost:5500", "https://tweber92.github.io"],
+    supports_credentials=True,
+)
 
 
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])

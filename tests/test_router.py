@@ -2,11 +2,6 @@ import json
 from unittest.mock import patch, MagicMock
 from src.common.router import route
 
-# Note: Assuming the Logger is setup somewhere globally in tests, or we patch it.
-# If you get errors about Logger not being configured, you can add:
-# from src.common.logger import Logger
-# Logger.setup_default_logger()
-
 
 def test_unknown_route_returns_404():
     result = route("GET", "/api/nope")
