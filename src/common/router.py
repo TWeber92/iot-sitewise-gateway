@@ -28,6 +28,7 @@ def route(method: str, path: str, raw_body: str = None, headers: dict = None):
     is_fallback = False  # JS - fetch does not allow body/payload in GET network calls - this is an override in the APIGateway platform
     if handler is None and method == "POST":
         handler = ROUTES.get(f"GET:/{'/'.join(parts)}")
+        method = "GET"
         is_fallback = True
 
     if handler is None:
