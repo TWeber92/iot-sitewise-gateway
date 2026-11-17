@@ -31,8 +31,7 @@ class Main:
         Logger.setup_default_logger()
         # 1. Initialize the Client (OORT)
         oort = OORTStorageClient(
-            env["OORT_ACCESS_KEY"],
-            env["OORT_SECRET_KEY"],
+            env["FULA_JWT"],
             env["OORT_BUCKET"],
         )
         self.client = MockSiteWiseClient(oort)
