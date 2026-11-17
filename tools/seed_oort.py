@@ -65,10 +65,6 @@ def make_line(asset_id, name, status, speed, downtime, children):
         },
         "hierarchies": [{"id": f"{asset_id}-hierarchy", "name": "Contains Machines"}],
         "children": children,
-        "latest": {
-            "speed": speed,
-            "machineDowntime": downtime,
-        },
         "history": {
             "speed": generate_history(speed, 5, is_int=True) if speed > 0 else [],
             "machineDowntime": generate_history(downtime, 2, is_int=True),
@@ -110,7 +106,6 @@ def make_machine(asset_id, name, status, base_temp, base_torque):
         "properties": props,
         "hierarchies": [],
         "children": [],
-        "latest": props,  # For simplicity, latest mirrors the base props
         "history": history,
         "aggregates": aggregates,
     }
