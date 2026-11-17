@@ -18,6 +18,9 @@ class HierarchyRepository:
             )
             if "propertyValue" in value_response:
                 raw = value_response["propertyValue"]["value"]
+                if "nullValue" in raw:
+                    values.append({"propertyName": prop["name"], "latestValue": None})
+                    continue
                 for key in raw:
                     latest = raw[key]
                     values.append(

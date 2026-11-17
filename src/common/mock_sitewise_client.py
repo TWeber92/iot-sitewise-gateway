@@ -39,13 +39,13 @@ class MockSiteWiseClient:
         return {"assetSummaries": data.get("children", [])}
 
     def get_asset_property_value(self, assetId, propertyId):
-        # propertyId will be like "speed-id" from our describe_asset
         prop_name = propertyId.replace("-id", "")
         data = self._load_asset(assetId)
 
-        # Return the latest value in AWS shape
-        latest_value = data["latest"].get(prop_name, 0)
+        latest_value = data["properties"].get(prop_name)
 
+        if latest_value is None:
+            return {"propertyValue": {"value": {"nullValue": {}}}}
         if isinstance(latest_value, str):
             return {"propertyValue": {"value": {"stringValue": latest_value}}}
         else:
