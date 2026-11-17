@@ -10,9 +10,9 @@ load_dotenv()
 
 client = boto3.client(
     "s3",
-    endpoint_url="https://s3-standard.oortech.com",
-    aws_access_key_id=os.environ["OORT_ACCESS_KEY"],
-    aws_secret_access_key=os.environ["OORT_SECRET_KEY"],
+    endpoint_url="https://s3.cloud.fx.land",
+    aws_access_key_id=f"JWT:{os.environ["FULA_JWT"]}",
+    aws_secret_access_key="not-used",
     region_name="us-east-1",
     config=Config(
         signature_version="s3v4",
