@@ -25,13 +25,18 @@ def route(method: str, path: str, raw_body: str = None, headers: dict = None):
     parts = path.strip("/").split("/")[:2]  # ['api', 'asset']
     key = f"{method}:/{'/'.join(parts)}"  # 'GET:/api/asset'
     handler = ROUTES.get(key)
+    is_fallback = False  # JS - fetch does not allow body/payload in GET network calls - this is an override in the APIGateway platform
+    if handler is None and method == "POST":
+        handler = ROUTES.get(f"GET:/{'/'.join(parts)}")
+        is_fallback = True
+
     if handler is None:
         return {
             "statusCode": 404,
             "body": json.dumps({"error": f"No route for {method} {path}"}),
         }
 
-    if method in ["POST", "PUT", "DELETE"]:
+    if method in ["POST", "PUT", "DELETE"] and not is_fallback:
         if not headers or not Auth.check_basic_auth(headers):
             return {
                 "statusCode": 401,
