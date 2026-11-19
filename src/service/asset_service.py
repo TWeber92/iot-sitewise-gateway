@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from src.models.property_historical_values import PropertyHistoricalValues
 from src.models.asset import Asset
 from src.models.query_params import QueryParams
@@ -47,8 +47,15 @@ class AssetService:
         asset_response = self.repo.get_asset_details(body["assetId"])
         asset = Asset(asset_response["assetId"], asset_response["assetName"])
 
-        start_date = datetime.strptime(body["startDate"], "%Y-%m-%d")
-        end_date = datetime.strptime(body["endDate"], "%Y-%m-%d")
+        # Explicit UTC so results don't depend on the server's local timezone.
+        # Note: endDate "2025-12-31" means midnight at the START of that day,
+        # so data on Dec 31 itself is excluded (add a day if you want it in).
+        start_date = datetime.strptime(body["startDate"], "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
+        end_date = datetime.strptime(body["endDate"], "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
         start_ts = int(start_date.timestamp())
         end_ts = int(end_date.timestamp())
 

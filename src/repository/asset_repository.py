@@ -1,3 +1,6 @@
+PAGE_SIZE = 250  # per-call page size, same as the old paginator config
+
+
 class AssetRepository:
     def __init__(self, client):
         self.client = client
@@ -57,24 +60,36 @@ class AssetRepository:
         time_ordering,
         max_results,
     ):
+        """Follow nextToken until the data runs out or max_results is reached.
+
+        Works the same against real boto3 and the mock client. Termination
+        keys off nextToken, never off page length: a real page can be smaller
+        than requested and still have more data behind it.
+        """
         raw_values = []
+        next_token = None
 
-        paginator = self.client.get_paginator("get_asset_property_value_history")
-        page_iterator = paginator.paginate(
-            assetId=asset_id,
-            propertyId=property_id,
-            startDate=start_date,
-            endDate=end_date,
-            qualities=qualities,
-            timeOrdering=time_ordering,
-            PaginationConfig={"MaxItems": max_results, "PageSize": 250},
-        )
+        while len(raw_values) < max_results:
+            kwargs = dict(
+                assetId=asset_id,
+                propertyId=property_id,
+                startDate=start_date,
+                endDate=end_date,
+                qualities=qualities,
+                timeOrdering=time_ordering,
+                maxResults=min(max_results - len(raw_values), PAGE_SIZE),
+            )
+            if next_token:
+                kwargs["nextToken"] = next_token
 
-        for page in page_iterator:
-            for value in page.get("assetPropertyValueHistory", []):
-                raw_values.append(value)
+            response = self.client.get_asset_property_value_history(**kwargs)
+            raw_values.extend(response.get("assetPropertyValueHistory", []))
 
-        return raw_values
+            next_token = response.get("nextToken")
+            if not next_token:
+                break
+
+        return raw_values[:max_results]
 
     def get_asset_details(self, asset_id: str) -> dict:
         return self.client.describe_asset(assetId=asset_id)

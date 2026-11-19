@@ -1,23 +1,40 @@
 from src.common.logger import Logger
 
+# Deliberately small so the repository's loop must follow nextToken.
+# The real service returns much larger pages (up to 20,000 items).
+MOCK_PAGE_SIZE = 3
+
 
 class MockSiteWiseClient:
     def __init__(self, oort_client):
         self.oort = oort_client
+        self._cache = {}
 
     def put_asset(self, asset_id, data):
         self.oort.put_json(f"sitewise/assets/{asset_id}.json", data)
+        self._cache.pop(asset_id, None)
 
     def _load_asset(self, asset_id):
-        # Helper to load the asset file from OORT
+        # Helper to load the asset file from OORT (cached per client instance)
+        if asset_id in self._cache:
+            return self._cache[asset_id]
         try:
-            return self.oort.get_json(f"sitewise/assets/{asset_id}.json")
+            data = self.oort.get_json(f"sitewise/assets/{asset_id}.json")
         except Exception:
             Logger.emit(
                 "error",
                 {"source": "MockSiteWise", "message": f"Asset {asset_id} not found"},
             )
             raise
+        self._cache[asset_id] = data
+        return data
+
+    @staticmethod
+    def _to_epoch(d):
+        """Accept datetime objects or epoch seconds, like boto3 does."""
+        if d is None:
+            return None
+        return int(d.timestamp()) if hasattr(d, "timestamp") else int(d)
 
     def describe_asset(self, assetId):
         data = self._load_asset(assetId)
@@ -55,25 +72,43 @@ class MockSiteWiseClient:
         self,
         assetId,
         propertyId,
-        startDate,
-        endDate,
-        qualities,
-        timeOrdering,
-        maxResults,
+        startDate=None,
+        endDate=None,
+        qualities=None,
+        timeOrdering="ASCENDING",
+        maxResults=100,
+        nextToken=None,
     ):
         prop_name = propertyId.replace("-id", "")
         data = self._load_asset(assetId)
+        items = list(data.get("history", {}).get(prop_name, []))
 
-        # Fetch history and filter by date
-        history = data.get("history", {}).get(prop_name, [])
-        filtered = [
-            v
-            for v in history
-            if startDate <= v["timestamp"]["timeInSeconds"] <= endDate
-        ]
+        start = self._to_epoch(startDate)
+        end = self._to_epoch(endDate)
 
-        # Return in AWS shape
-        return {"assetPropertyValueHistory": filtered}
+        # Filter and sort first, then slice into pages (the real service
+        # paginates last). Boundaries: startDate exclusive, endDate inclusive
+        # (verify against the GetAssetPropertyValueHistory API reference).
+        if start is not None:
+            items = [v for v in items if v["timestamp"]["timeInSeconds"] > start]
+        if end is not None:
+            items = [v for v in items if v["timestamp"]["timeInSeconds"] <= end]
+        if qualities:
+            items = [v for v in items if v.get("quality", "GOOD") in qualities]
+        items.sort(
+            key=lambda v: v["timestamp"]["timeInSeconds"],
+            reverse=(timeOrdering == "DESCENDING"),
+        )
+
+        # nextToken is opaque to callers; here it is just a string offset.
+        offset = int(nextToken) if nextToken else 0
+        size = min(maxResults, MOCK_PAGE_SIZE)
+        page = items[offset : offset + size]
+
+        response = {"assetPropertyValueHistory": page}
+        if offset + size < len(items):
+            response["nextToken"] = str(offset + size)
+        return response
 
     def get_asset_property_aggregates(
         self,

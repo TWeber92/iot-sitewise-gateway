@@ -5,8 +5,7 @@ from src.common.oort_storage_client import OORTStorageClient
 load_dotenv()
 
 oort = OORTStorageClient(
-    os.environ["OORT_ACCESS_KEY"],
-    os.environ["OORT_SECRET_KEY"],
+    os.environ["FULA_JWT"],
     os.environ["OORT_BUCKET"],
 )
 
